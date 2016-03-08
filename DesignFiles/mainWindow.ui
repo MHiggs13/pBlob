@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainForm</class>
+ <widget class="QDialog" name="MainForm">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1000</width>
+    <height>621</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <widget class="QGraphicsView" name="titleGraphic">
+   <property name="geometry">
+    <rect>
+     <x>15</x>
+     <y>20</y>
+     <width>970</width>
+     <height>192</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QLabel" name="connectedUsersLbl">
+   <property name="geometry">
+    <rect>
+     <x>15</x>
+     <y>230</y>
+     <width>151</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Connected Users</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="connectionHistoryLbl">
+   <property name="geometry">
+    <rect>
+     <x>365</x>
+     <y>230</y>
+     <width>231</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Connection History</string>
+   </property>
+  </widget>
+  <widget class="QTableView" name="connectedUsersTable">
+   <property name="geometry">
+    <rect>
+     <x>15</x>
+     <y>250</y>
+     <width>270</width>
+     <height>351</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QTextBrowser" name="connectionHistoryTxbrwsr">
+   <property name="geometry">
+    <rect>
+     <x>365</x>
+     <y>250</y>
+     <width>270</width>
+     <height>351</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QLabel" name="gameInfoLbl">
+   <property name="geometry">
+    <rect>
+     <x>715</x>
+     <y>230</y>
+     <width>231</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Game Information</string>
+   </property>
+  </widget>
+  <widget class="QTextBrowser" name="gameInfoTxbrwsr">
+   <property name="geometry">
+    <rect>
+     <x>715</x>
+     <y>250</y>
+     <width>270</width>
+     <height>351</height>
+    </rect>
+   </property>
+  </widget>
+  <zorder>titleGraphic</zorder>
+  <zorder>connectedUsersLbl</zorder>
+  <zorder>connectionHistoryLbl</zorder>
+  <zorder>connectionHistoryTxbrwsr</zorder>
+  <zorder>connectedUsersTable</zorder>
+  <zorder>gameInfoLbl</zorder>
+  <zorder>gameInfoTxbrwsr</zorder>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
