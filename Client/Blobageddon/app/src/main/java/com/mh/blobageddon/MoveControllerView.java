@@ -49,7 +49,6 @@ public class MoveControllerView extends SurfaceView {
                 y = event.getY();
 
                 // Set dX and dY equal to distance away from center of screen
-                // Math.abs to make sure result is not negatgive
                 dX = x - zX;
                 dY = y - zY;
 
@@ -129,7 +128,7 @@ public class MoveControllerView extends SurfaceView {
      */
     protected void update() {
         if (connection.isConnected) {
-            move.setStrMove(x, y);
+            move.setStrMove(dX, dY);
             connection.sendMove(move);
         }
         else {      //attempt to reconnect

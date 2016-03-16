@@ -20,3 +20,9 @@ class Blob(QLabel):
         self.blobPxMap = self.blobPxMap.scaled(self.BLOB_WIDTH, self.BLOB_HEIGHT, Qt.KeepAspectRatio, Qt.SmoothTransformation)
 
         self.setPixmap(self.blobPxMap)
+
+        self.defSpeed = 3
+        self.xSpeed = 0
+        self.ySpeed = 0
+
+        self.show()

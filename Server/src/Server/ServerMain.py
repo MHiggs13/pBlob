@@ -8,13 +8,17 @@ from src.Server.State import State
 
 class ServerMain(QObject, Thread):
 
+    # Signal to update the State
     updateStateSig = pyqtSignal(['QString'])
 
-    # Signals to allow data to be sent to UI screen
+    # Signals to send data to MAIN_SCREEN
     updateConnectedUsersSig = pyqtSignal(['QString'])
     appendConnectedHistorySig = pyqtSignal(['QString'])
     updateConnectedHistorySig = pyqtSignal(['QString'])
     updateGameInfoSig = pyqtSignal(['QString'])
+
+    # Signals to send data to GAME_SCREEN
+    updatePosSig = pyqtSignal(['QString'])
 
     state = State()
 
@@ -73,7 +77,7 @@ class ServerMain(QObject, Thread):
             history = 'Connection from {!s}.'.format(address)
             self.appendConnectedHistorySig.emit(history)
 
-            listOfClients[counter] = Thread(target=self.waitForClient, args=(clientSock, address))
+            listOfClients[counter] = Thread(target=self.inMainState, args=(clientSock, address))
             self.listOfClientSocks[counter] = clientSock
             listOfClients[counter].start()
 
@@ -89,9 +93,13 @@ class ServerMain(QObject, Thread):
                 print("TERMINATED - !MSG")
                 history = 'Disconnection from {!s}.'.format(address)
                 self.appendConnectedHistorySig.emit(history)
+
+                # since msg is returned have to set to empty string
+                msg = ""
                 break
 
             stringData = msg.decode('utf-8')
+            print (stringData)
             stringData = stringData[2:] # todo need to remove 2 chars from start of converted string, dont know why
 
             # Check if game is required to change state
@@ -99,9 +107,16 @@ class ServerMain(QObject, Thread):
                 self.state.currState = stringData
                 self.updateStateSig.emit("")
 
+                if (self.state.currState == State.MAIN_SCREEN):
+                    self.inMainState(clientSock, address)
+                elif (self.state.currState == State.GAME_SCREEN):
+                    self.inGameState(clientSock, address)
 
-            output = '{!s}: {!s}\n'.format(address, stringData)
-            #self.updateGameInfoSig.emit(output)
+            # todo might not be good with method calls above, needs some thought
+            return msg
+
+
+
 
         # close client sock after receiving data
         clientSock.close()
@@ -110,11 +125,17 @@ class ServerMain(QObject, Thread):
          # b'\x00\x07
         return msg[10:]
 
-    def inGameState(self):
-        pass
+    def inMainState(self, clientSock, address):
+        while True:
+            msg = self.waitForClient(clientSock, address)
+            output = '{!s}: {!s}\n'.format(address, msg)
+            self.updateGameInfoSig.emit(output)
 
-    def inMainState(self):
-        pass
+    def inGameState(self, clientSock, address):
+        while True:
+            msg = self.waitForClient(clientSock, address).decode('utf-8')
+            self.updatePosSig.emit(msg)
+
 
     def manageClientConnections(self):
         # method to manage client connections

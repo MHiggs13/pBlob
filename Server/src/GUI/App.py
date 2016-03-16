@@ -17,17 +17,20 @@ class Window(QMainWindow):
         super(Window, self).__init__()
 
         self.widgMain = MainForm()
+        self.widgBoard = GameBoard()
         self.server = ServerMain()
 
-        # Set up connections between UI and Server, allowing Server to send messages to UI
+        # Set up signal to allow state change
+        self.server.updateStateSig.connect(self.updateState)
+
+        # Set up signal to allow data to be sent to MAIN_SCREEN
         self.server.updateConnectedUsersSig.connect(self.widgMain.updateConnectedUsers)
         self.server.appendConnectedHistorySig.connect(self.widgMain.appendConnectedHistory)
         self.server.updateConnectedUsersSig.connect(self.widgMain.updateConnectedHistory)
         self.server.updateGameInfoSig.connect(self.widgMain.updateGameInfo)
 
-        self.server.updateStateSig.connect(self.updateState)
-
-        self.widgBoard = GameBoard()
+        # Set up signal to allow data to be sent to GAME_SCREEN
+        self.server.updatePosSig.connect(self.widgBoard.updateGame)
 
         self.stack = QStackedWidget(self)
         self.stack.resize(self.BOARD_WIDTH, self.BOARD_HEIGHT)

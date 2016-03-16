@@ -96,9 +96,9 @@ public class Connection {
                 System.out.println("@@@IN CONNECT TASK");
                 //address and port number of machine that server is running on
                 //Belfast IP
-                InetAddress addr = InetAddress.getByName("192.168.0.18");
+//                InetAddress addr = InetAddress.getByName("192.168.0.18");
                 //Home IP
-//                InetAddress addr = InetAddress.getByName("192.168.1.102");
+                InetAddress addr = InetAddress.getByName("192.168.1.102");
                 // QUBSec IP
                 //InetAddress addr = InetAddress.getByName("143.117.228.31");
                 //192.168.42.20
