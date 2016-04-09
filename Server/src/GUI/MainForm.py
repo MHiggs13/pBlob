@@ -11,7 +11,6 @@ class MainForm(QWidget):
         super(MainForm, self).__init__(parent)
         self.setupUi(self)
 
-
     def setupUi(self, MainForm):
         MainForm.setObjectName("MainForm")
         MainForm.resize(1000, 621)

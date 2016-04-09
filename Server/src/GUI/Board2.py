@@ -4,7 +4,7 @@ from decimal import Decimal
 import math
 from socket import AddressFamily
 
-from PyQt5.QtWidgets import QWidget, QGraphicsView, QGraphicsScene
+from PyQt5.QtWidgets import QWidget, QGraphicsView, QGraphicsScene, QScrollBar
 
 from src.GUI.Blob2 import Blob
 
@@ -20,7 +20,11 @@ class Board(QGraphicsView):
     def __init__(self):
         super(Board, self).__init__()
         print("Initiated board")
+        self.setHorizontalScrollBarPolicy(1)  # Qt::ScrollBarAlwaysOff = 1
+        self.setVerticalScrollBarPolicy(1)
+
         self.scene = QGraphicsScene(self)
+        self.scene.setSceneRect(0,0, self.BOARD_WIDTH, self.BOARD_HEIGHT)
 
     def start(self, adrs):
         self.setupUI(adrs)
