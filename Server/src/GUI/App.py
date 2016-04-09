@@ -2,9 +2,10 @@ import sys
 
 from PyQt5.QtWidgets import QStackedWidget, QMainWindow, QApplication, QGridLayout
 
+from src.GUI.Board2 import Board
 from src.GUI.MainForm import MainForm
-from src.GUI.Board import GameBoard
-from src.Server.ServerMain import ServerMain
+from src.Server.Server import Server
+
 from src.Server.State import State
 
 
@@ -17,11 +18,12 @@ class Window(QMainWindow):
         super(Window, self).__init__()
 
         self.widgMain = MainForm()
-        self.widgBoard = GameBoard()
-        self.server = ServerMain()
+        self.widgBoard = Board()
+        print("AFTER BOARD CREATED")
+        self.server = Server()
 
         # Set up signal to allow state change
-        self.server.updateStateSig.connect(self.updateState)
+        self.server.updateActiveWidget.connect(self.updateActiveWidget)
 
         # Set up signal to allow data to be sent to MAIN_SCREEN
         self.server.updateConnectedUsersSig.connect(self.widgMain.updateConnectedUsers)
@@ -30,7 +32,7 @@ class Window(QMainWindow):
         self.server.updateGameInfoSig.connect(self.widgMain.updateGameInfo)
 
         # Set up signal to allow data to be sent to GAME_SCREEN
-        self.server.updatePosSig.connect(self.widgBoard.updateGame)
+        self.server.updateGameSig.connect(self.widgBoard.updateGame)
 
         self.stack = QStackedWidget(self)
         self.stack.resize(self.BOARD_WIDTH, self.BOARD_HEIGHT)
@@ -47,15 +49,14 @@ class Window(QMainWindow):
 
         self.stack.setCurrentIndex(0)
 
-        self.server.setupServer()
         self.server.start()
         self.show()
 
-    def updateState(self, string):
-        print("In state changed")
+    def updateActiveWidget(self, adrs):
         if (self.server.state.currState == State.GAME_SCREEN):
             self.stack.setCurrentIndex(1)
-            self.widgBoard.start()
+            print(len(adrs))
+            self.widgBoard.start(adrs)
         elif (self.server.state.currState == State.MAIN_SCREEN):
             self.stack.setCurrentIndex(0)
 

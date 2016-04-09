@@ -15,7 +15,12 @@ public class MoveControllerActivity extends Activity {
         if that happens then display the new view. Note condition will
         return true even if the message is sent but not received. */
         while (!(connection.sendStateChange(State.GAME_SCREEN)));
+
         setContentView(new MoveControllerView(this));
+    }
+
+    protected void onStart() {
+        super.onStart();
     }
 
 }

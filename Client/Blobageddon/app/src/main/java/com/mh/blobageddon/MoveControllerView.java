@@ -87,7 +87,7 @@ public class MoveControllerView extends SurfaceView {
             }
         });
 
-        gameLoopThread = new GameLoopThread(this);
+//        gameLoopThread = new GameLoopThread(this);
         holder = getHolder();
         holder.addCallback(new SurfaceHolder.Callback() {
             @Override
@@ -105,6 +105,7 @@ public class MoveControllerView extends SurfaceView {
 
             @Override
             public void surfaceCreated(SurfaceHolder holder) {
+                gameLoopThread = new GameLoopThread(MoveControllerView.this);
                 gameLoopThread.setRunning(true);
                 gameLoopThread.start();
             }
@@ -167,6 +168,7 @@ class GameLoopThread extends Thread {
         this.view = view;
     }
 
+    public boolean getRunning() { return running;}
     public void setRunning(boolean run) {
         running = run;
     }
@@ -179,7 +181,9 @@ class GameLoopThread extends Thread {
                 c = view.getHolder().lockCanvas();
                 synchronized (view.getHolder()) {
                     view.update();
-                    view.onDraw(c);
+                    if (c != null) {
+                        view.onDraw(c);
+                    }
                 }
             } finally {
                 if (c != null) {

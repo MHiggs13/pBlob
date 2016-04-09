@@ -1,12 +1,7 @@
 package com.mh.blobageddon;
 
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.os.Message;
 import android.support.v7.app.ActionBarActivity;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -15,25 +10,15 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 
-
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
-import java.net.InetAddress;
 import java.net.Socket;
-import java.net.UnknownHostException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Semaphore;
-import android.os.Handler;
-import java.util.logging.LogRecord;
 
 public class MainActivity extends ActionBarActivity {
 
     private Socket sock = new Socket();
     private boolean connected = false;
     private Connection connection;
+    private StateUpdate receiveStateT;
+    private boolean isClicked = false;
     //private Bitmap ball;
 
     @Override
@@ -45,6 +30,24 @@ public class MainActivity extends ActionBarActivity {
 
         updateUi();
     }
+
+    @Override
+    protected void  onStart() {
+        super.onStart();
+        // todo is this necessary
+        if (connection.isConnected == false) {
+            connection.setupSocket();
+        }
+
+        receiveStateT = new StateUpdate();
+        receiveStateT.start();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+    }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -95,13 +98,7 @@ public class MainActivity extends ActionBarActivity {
 //        // up the semaphore to allow client to send
 //        semSendMessage.release();
         if (connected) {
-            try {
-                connected = new SendMsgTask().execute(msg).get();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } catch (ExecutionException e) {
-                e.printStackTrace();
-            }
+            connected = connection.sendMessage(msg);
         }
         updateUi();
     }
@@ -115,18 +112,34 @@ public class MainActivity extends ActionBarActivity {
     }
 
     public void btnMoveControllerActivityClicked(View view) {
+        changeMoveActivity();
+    }
 
+    public void changeMoveActivity() {
+        isClicked = true;
         Intent intent = new Intent(this, MoveControllerActivity.class);
 
         Bundle b = new Bundle();
-        b.putInt("key", 1); //Your id
-        intent.putExtras(b); //Put your id to your next Intent
+        b.putInt("key", 1); // Your id
+        intent.putExtras(b); // Put your id to your next Intent
         startActivity(intent);
         finish();
 
         startActivity(intent);
-
     }
+
+    public void changeGunnerActivity() {
+
+        System.out.println("GUNNER STARTED");
+        isClicked = true;
+        Intent intent = new Intent(this, GunnerActivity.class);
+
+        startActivity(intent);
+        finish();
+
+        startActivity(intent);
+    }
+
 
     public void btnTestViewClicked(View view) {
 
@@ -134,64 +147,34 @@ public class MainActivity extends ActionBarActivity {
         startActivity(intent);
     }
 
-    private class ConnectTask extends AsyncTask<Void, Void, Socket>
-    {
-        Socket sock;
+    private class StateUpdate extends Thread {
+        /* Thread checks every 0.1s if a state change has occurred, if state change has occured. Move
+       to the appropriate activity.
+       */
+        @Override
+        public void run() {
+            while (connection.getState() == com.mh.blobageddon.State.MAIN_SCREEN && !isClicked) {
+                connection.receiveStateChange();
 
-        public Socket getSock() {
-            return sock;
-        }
+                try {
+                    this.sleep(100);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
 
-        protected Socket doInBackground(Void... params) {
+                // if current state is not main screen, change activity to appropriate
+                if (connection.getState() != com.mh.blobageddon.State.MAIN_SCREEN && !isClicked) {
+                    if (connection.getState() == com.mh.blobageddon.State.GAME_SCREEN) {
+                        System.out.println("GAMESCREEN SHOULD APPEAR");
+                        changeGunnerActivity();
+                    }
+                }
+            }
+            System.out.println("OUT OF LOOP, THREAD DEAD");
             try {
-                System.out.println("@@@IN CONNECT TASK");
-                //address and port number of machine that server is running on
-                //Belfast IP
-                //InetAddress addr = InetAddress.getByName("192.168.0.15");
-                //Home IP
-                //InetAddress addr = InetAddress.getByName("192.168.1.102");
-                // QUBSec IP
-                //InetAddress addr = InetAddress.getByName("143.117.228.31");
-                //192.168.42.20
-                InetAddress addr = InetAddress.getByName("192.168.42.20");
-
-                int portNum = 8313;
-
-                //create socket for connecting to server with servers address and port number
-                sock = new Socket(addr, portNum);
-            } catch (UnknownHostException e) {
-                //catch exceptions to do with connecting to server
+                this.join();
+            } catch (InterruptedException e) {
                 e.printStackTrace();
-            } catch (Exception e) {
-                //general catch all exception
-                e.printStackTrace();
-            }
-            return sock;
-        }
-    }
-
-    private class SendMsgTask extends AsyncTask<String, Void, Boolean> {
-
-        protected Boolean doInBackground(String... arrMsg) {
-            String msg = arrMsg[0];
-            try {
-                // create stream to allow data to be transfered to server using sock
-                DataOutputStream dOut = new DataOutputStream(sock.getOutputStream());
-
-                //send string in dOut to server, dOut.flush() does send and flushes dOut
-                dOut.writeUTF(msg);
-                dOut.flush();
-                return Boolean.TRUE;
-            }
-            catch (IOException e) {
-                //catch exceptions with the writer and readers
-                e.printStackTrace();
-                return Boolean.FALSE;
-            }
-            catch (Exception e) {
-                //general catch all exception
-                e.printStackTrace();
-                return Boolean.FALSE;
             }
         }
     }

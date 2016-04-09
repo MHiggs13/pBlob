@@ -21,10 +21,13 @@
         </activity>
         <activity
             android:name=".MoveControllerActivity"
-            android:label="@string/title_activity_move_controller"></activity>
+            android:label="@string/title_activity_move_controller" />
         <activity
             android:name=".TestAtivity"
-            android:label="@string/title_activity_test_ativity"></activity>
+            android:label="@string/title_activity_test_ativity" />
+        <activity
+            android:name=".GunnerActivity"
+            android:label="@string/title_activity_gunner"></activity>
     </application>
 
 </manifest>

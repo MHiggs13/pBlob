@@ -9,7 +9,7 @@ from src.Server.State import State
 class ServerMain(QObject, Thread):
 
     # Signal to update the State
-    updateStateSig = pyqtSignal(['QString'])
+    updateStateSig = pyqtSignal(list)
 
     # Signals to send data to MAIN_SCREEN
     updateConnectedUsersSig = pyqtSignal(['QString'])
@@ -18,7 +18,7 @@ class ServerMain(QObject, Thread):
     updateGameInfoSig = pyqtSignal(['QString'])
 
     # Signals to send data to GAME_SCREEN
-    updatePosSig = pyqtSignal(['QString'])
+    updatePosSig = pyqtSignal(['QString', 'QString'])
 
     state = State()
 
@@ -65,10 +65,11 @@ class ServerMain(QObject, Thread):
 
         self.appendConnectedHistorySig.emit("Waiting on a connection...")
 
-        t = Thread()
-        listOfClients = [t]
+
+        listOfClients = []
+        self.listOfClientNames = []
+        counter = 0
         while True:
-            counter = 0
             # clientSock = new socket object to allow data to be exchanged
             # address is address of cliSock on client's end of communication
 
@@ -77,9 +78,11 @@ class ServerMain(QObject, Thread):
             history = 'Connection from {!s}.'.format(address)
             self.appendConnectedHistorySig.emit(history)
 
-            listOfClients[counter] = Thread(target=self.inMainState, args=(clientSock, address))
-            self.listOfClientSocks[counter] = clientSock
+            listOfClients.append(Thread(target=self.inMainState, args=(clientSock, address)))
+            self.listOfClientSocks.append(clientSock)
+            self.listOfClientNames.append(address[0])
             listOfClients[counter].start()
+            counter += 1
 
         self.sock.close()
 
@@ -99,25 +102,22 @@ class ServerMain(QObject, Thread):
                 break
 
             stringData = msg.decode('utf-8')
-            print (stringData)
             stringData = stringData[2:] # todo need to remove 2 chars from start of converted string, dont know why
 
-            # Check if game is required to change state
+            # Check if game is required to change state, send message to client saying to change state
             if (stringData != self.state.currState):
                 self.state.currState = stringData
-                self.updateStateSig.emit("")
+                self.updateStateSig.emit(self.listOfClientNames)
 
                 if (self.state.currState == State.MAIN_SCREEN):
+                    clientSock.send(State.MAIN_SCREEN.encode())
                     self.inMainState(clientSock, address)
                 elif (self.state.currState == State.GAME_SCREEN):
+                    clientSock.send(State.GAME_SCREEN.encode())
                     self.inGameState(clientSock, address)
 
             # todo might not be good with method calls above, needs some thought
             return msg
-
-
-
-
         # close client sock after receiving data
         clientSock.close()
 
@@ -132,9 +132,11 @@ class ServerMain(QObject, Thread):
             self.updateGameInfoSig.emit(output)
 
     def inGameState(self, clientSock, address):
+        print("SENT STATE TO CLIENT")
+        clientSock.send(State.GAME_SCREEN.encode())
         while True:
             msg = self.waitForClient(clientSock, address).decode('utf-8')
-            self.updatePosSig.emit(msg)
+            self.updatePosSig.emit(address[0], msg)
 
 
     def manageClientConnections(self):

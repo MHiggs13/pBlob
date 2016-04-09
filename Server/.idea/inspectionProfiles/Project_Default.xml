@@ -6,6 +6,7 @@
         <list>
           <option value="PyQt5.QtGui" />
           <option value="PyQt5.QtWidgets" />
+          <option value="src.Server.Server.socket" />
         </list>
       </option>
     </inspection_tool>
