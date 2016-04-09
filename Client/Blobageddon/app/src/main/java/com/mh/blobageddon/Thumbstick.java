@@ -34,11 +34,11 @@ public class Thumbstick {
         return angle;
     }
 
-    public void onTouch(MotionEvent event) {
+    public void onMove(MotionEvent event, int id) {
         // Set dX and dY equal to distance away from center of screen
-
-        x = event.getX();
-        y = event.getY();
+        final int index = event.findPointerIndex(id);
+        x = event.getX(index);
+        y = event.getY(index);
 
         dX = x - zX;
         dY = y - zY;
@@ -46,7 +46,6 @@ public class Thumbstick {
         int radius = bmpBall.getWidth() - 200;
 
         // Check if bmpBall goes out of bounds and fix if so
-        if (event.getAction() == MotionEvent.ACTION_MOVE ) {
             hyp = (float) Math.sqrt((dX * dX) + (dY * dY));
             angle = (float) Math.atan(Math.abs(dY / dX));
 
@@ -78,15 +77,13 @@ public class Thumbstick {
                 // angle is within 180-270
                 angle += 180;
             }
-        }
-        // Reset bmp ball to center when it is let go,
-        // Set  x and y to 0 as the default co-ords will then be used
-        else if (event.getAction() == MotionEvent.ACTION_UP) {
-            // TODO gradually move ball to center
-            x = y = 0;
-            dX = dY = 0;
-            angle = -1;
-        }
+    }
+
+    public void onUp() {
+        // TODO gradually move ball to center
+        x = y = 0;
+        dX = dY = 0;
+        angle = -1;
     }
 
     public void onDraw(Canvas canvas) {

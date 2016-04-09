@@ -21,7 +21,10 @@ public class GunnerView extends SurfaceView {
     private FireButton fireButton;
 
     // x and y values of the touch of the player
-    public float x = 0, y = 0;
+    public float x = 0, y = 0, lastX = x, lastY = y;
+
+    private static final int INVALID_POINTER_ID = -1;
+    private int thumbstickId= INVALID_POINTER_ID, fireButtonId = INVALID_POINTER_ID;
 
     private Move move;
 
@@ -32,90 +35,6 @@ public class GunnerView extends SurfaceView {
 
         thumbstick = new Thumbstick(context);
         fireButton = new FireButton(context);
-
-        this.setOnTouchListener(new OnTouchListener() {
-            private int mActivePointerId;
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-
-                int action = event.getAction();
-
-                switch (action & MotionEvent.ACTION_MASK) {
-
-                    case MotionEvent.ACTION_DOWN: {
-                        int id = event.getPointerId(0);
-
-                        float x = event.getX(0);
-                        float y = event.getY(0);
-
-                        if (fireButton.touchRegion.isXYIn(x, y)) {
-                            fireButton.onTouch(event);
-                        }
-                        break;
-                    }
-
-                    case MotionEvent.ACTION_POINTER_DOWN: {
-                        int index = event.getActionIndex();
-                        int id = event.getPointerId(index);
-
-                        float x = event.getX(index);
-                        float y = event.getY(index);
-
-                        if (thumbstick.touchRegion.isXYIn(x, y)) {
-                            thumbstick.onTouch(event);
-                        }
-                        if (fireButton.touchRegion.isXYIn(x, y)) {
-                            fireButton.onTouch(event);
-                        }
-                        break;
-                    }
-
-                    case MotionEvent.ACTION_UP: {
-                        int index = event.getActionIndex();
-
-                        float x = event.getX(index);
-                        float y = event.getY(index);
-
-                        if (thumbstick.touchRegion.isXYIn(x, y)) {
-                            thumbstick.onTouch(event);
-                        }
-                        if (fireButton.touchRegion.isXYIn(x, y)) {
-                            fireButton.onTouch(event);
-                        }
-                        break;
-                    }
-
-                    case MotionEvent.ACTION_POINTER_UP: {
-                        int index = event.getActionIndex();
-
-                        float x = event.getX(index);
-                        float y = event.getY(index);
-
-                        if (thumbstick.touchRegion.isXYIn(x, y)) {
-                            thumbstick.onTouch(event);
-                        }
-                        if (fireButton.touchRegion.isXYIn(x, y)) {
-                            fireButton.onTouch(event);
-                        }
-                        break;
-                    }
-
-                    case MotionEvent.ACTION_MOVE: {
-                        int index = event.getActionIndex();
-
-                        float x = event.getX(index);
-                        float y = event.getY(index);
-
-                        if (thumbstick.touchRegion.isXYIn(x, y)) {
-                            thumbstick.onTouch(event);
-                        }
-                        break;
-                    }
-                }
-
-                return true;
-            }
-        });
 
         holder = getHolder();
         holder.addCallback(new SurfaceHolder.Callback() {
@@ -128,6 +47,7 @@ public class GunnerView extends SurfaceView {
                         gunnerLoopThread.join();
                         retry = false;
                     } catch (InterruptedException e) {
+                        e.printStackTrace();
                     }
                 }
             }
@@ -145,6 +65,105 @@ public class GunnerView extends SurfaceView {
                 }
         });
 
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        int action = event.getAction();
+
+        switch (action & MotionEvent.ACTION_MASK) {
+
+            case MotionEvent.ACTION_DOWN: {
+
+                float x = event.getX(0);
+                float y = event.getY(0);
+
+                final int pointerId = event.getPointerId(0);  // ACTION_DOWN = one pointer so index 0
+
+                if (thumbstick.touchRegion.isXYIn(x, y)) {
+                    thumbstick.onMove(event, pointerId);
+                    thumbstickId = pointerId;
+                }
+                else if (fireButton.touchRegion.isXYIn(x, y)) {
+                    fireButton.onDown();
+                    fireButtonId = pointerId;
+                }
+                break;
+            }
+
+            case MotionEvent.ACTION_POINTER_DOWN: {
+
+                int index = (action & MotionEvent.ACTION_POINTER_INDEX_MASK)
+                        >> MotionEvent.ACTION_POINTER_INDEX_SHIFT;
+                final int pointerId = event.getPointerId(index);
+
+                float x = event.getX(index);
+                float y = event.getY(index);
+
+                if (thumbstick.touchRegion.isXYIn(x, y)) {
+                    thumbstick.onMove(event, pointerId);
+                    thumbstickId = pointerId;
+                }
+                else if (fireButton.touchRegion.isXYIn(x, y)) {
+                    fireButton.onDown();
+                    fireButtonId = pointerId;
+                }
+                break;
+            }
+
+            case MotionEvent.ACTION_UP: {
+                final int pointerId = event.getPointerId(0);
+
+                if (thumbstickId == pointerId) {
+                    thumbstick.onUp();
+                    thumbstickId = INVALID_POINTER_ID;
+                }
+                else if (fireButtonId == pointerId) {
+                    fireButton.onUp();
+                    fireButtonId = INVALID_POINTER_ID;
+                }
+                break;
+            }
+
+            case MotionEvent.ACTION_POINTER_UP: {
+                final int index = (action & MotionEvent.ACTION_POINTER_INDEX_MASK)
+                        >> MotionEvent.ACTION_POINTER_INDEX_SHIFT;
+                final int pointerId = event.getPointerId(index);
+
+                if (thumbstickId == pointerId) {
+                    thumbstick.onUp();
+                    System.out.println("thumstickACTIONUP");
+                }
+                else if (fireButtonId == pointerId) {
+                    fireButton.onUp();
+                }
+                // if either Id is the one being released find new primary id
+                if (thumbstickId == pointerId) {
+                    final int newPointerIndex = index == 0 ? 1 : 0;
+                    lastX = event.getX(newPointerIndex);
+                    lastY = event.getY(newPointerIndex);
+                    fireButtonId = event.getPointerId(newPointerIndex);
+                }
+                else if(fireButtonId == pointerId) {
+                    final int newPointerIndex = index == 0 ? 1 : 0;
+                    lastX = event.getX(newPointerIndex);
+                    lastY = event.getY(newPointerIndex);
+                    thumbstickId = event.getPointerId(newPointerIndex);
+                }
+                break;
+            }
+
+            case MotionEvent.ACTION_MOVE: {
+                // use thumbstickID to find index as thumbstick is only one that requires movement
+                final int index = event.findPointerIndex(thumbstickId);
+
+                if (index != -1) {
+                    thumbstick.onMove(event, thumbstickId);
+                }
+                break;
+            }
+        }
+        return true;
     }
 
     @Override
@@ -168,7 +187,6 @@ public class GunnerView extends SurfaceView {
         }
     }
 }
-
 
 class GunnerLoopThread extends Thread {
     private GunnerView view;

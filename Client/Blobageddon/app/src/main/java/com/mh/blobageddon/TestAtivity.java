@@ -18,6 +18,6 @@ public class TestAtivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_test_ativity);
         //requestWindowFeature(Window.FEATURE_NO_TITLE);
-        setContentView(new TestView(this));
+        setContentView(new GunnerView(this));
     }
 }

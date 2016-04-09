@@ -42,11 +42,13 @@ public class FireButton {
 
     }
 
-    public void onTouch(MotionEvent event) {
+    public void onDown() {
         isPressed = true;
-        if (event.getAction() == MotionEvent.ACTION_UP) {
-            isPressed = false;
-        }
+        onUpdate();
+    }
+
+    public void onUp() {
+        isPressed = false;
         onUpdate();
     }
 
