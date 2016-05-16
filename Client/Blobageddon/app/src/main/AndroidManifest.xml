@@ -27,7 +27,10 @@
             android:label="@string/title_activity_test_ativity" />
         <activity
             android:name=".GunnerActivity"
-            android:label="@string/title_activity_gunner"></activity>
+            android:label="@string/title_activity_gunner" />
+        <activity
+            android:name=".TeamSelectionActivity"
+            android:label="@string/title_activity_team_selection"></activity>
     </application>
 
 </manifest>

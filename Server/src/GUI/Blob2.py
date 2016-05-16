@@ -1,4 +1,5 @@
 import math
+import time
 from PyQt5.QtWidgets import QLabel, QGraphicsPixmapItem, QGraphicsItemGroup
 from PyQt5.QtGui import QPixmap, QTransform
 from PyQt5.QtCore import Qt
@@ -9,14 +10,15 @@ class Blob(QGraphicsItemGroup):
     def __init__(self, parent, client1, client2, boardWidth, boardHeight):
         super(Blob, self).__init__()
 
+        self.parent = parent
+
         self.blob = QGraphicsPixmapItem()
 
-        self.width = 200
-        self.height = 200
+        self.width = 100
+        self.height = 100
 
         self.driver = client1
         self.gunner = client2
-
 
         self.blob.setPixmap(QPixmap('C:\\Users\\michaelh\\Desktop\\CSC Project\\Server\\src\\resources\\blueBlob.png'))
         self.blob.setPixmap(self.blob.pixmap().scaled(self.width, self.height,
@@ -25,6 +27,8 @@ class Blob(QGraphicsItemGroup):
         self.defSpeed = 3
         self.xSpeed = 0
         self.ySpeed = 0
+
+        self.hits = 0
 
         self.gun = Gun(self, boardWidth, boardHeight)
         self.gun.setPos((self.width - self.gun.width) / 2, (self.height - self.gun.height) / 2)
@@ -35,11 +39,12 @@ class Blob(QGraphicsItemGroup):
         self.show()
 
 
-    def updatePos(self, dim):
+    def updatePos(self, dim, wall1, wall2):
         """ update the position using the speed variable, this will be set by the GameBoard class
         dim is a list of the dimensions of the board, [width, height] """
         # Draw blob in it's new position
-        print("dim", dim)
+        lastX = self.x()
+        lastY = self.y()
         x = self.x() + self.xSpeed
         y = self.y() + self.ySpeed
 
@@ -55,12 +60,15 @@ class Blob(QGraphicsItemGroup):
         elif y + self.height > dim[1]:
             y = dim[1] - self.height  # Sets y to be equal to height of the widget minus height of blob
 
-        print("X()= ", self.x(), "x= ", x)
         self.setPos(x, y)
 
+        if self.collidesWithItem(wall1) or self.collidesWithItem(wall2):
+            # todo while loop to allow blob to get as close sa possible to the walls
+            self.setPos(lastX, lastY)
 
-    def onDraw(self, dim):
-        self.updatePos(dim)
+
+    def onDraw(self, dim, wall1, wall2):
+        self.updatePos(dim, wall1, wall2)
         self.gun.onDraw(self.x(), self.y())
 
 class Gun(QGraphicsPixmapItem):
@@ -69,12 +77,13 @@ class Gun(QGraphicsPixmapItem):
     def __init__(self, parent, boardWidth, boardHeight):
         super(Gun, self).__init__()
         self.fireTally = 0
+        self.fireTime = time.clock()
 
         self.boardWidth = boardWidth
         self.boardHeight = boardHeight
 
-        self.width = 150
-        self.height = 150
+        self.width = 110
+        self.height = 110
 
         self.setPixmap(QPixmap('C:\\Users\\michaelh\\Desktop\\CSC Project\\Server\\src\\resources\\cannon.png'))
         self.setPixmap(self.pixmap().scaled(self.width, self.height,
@@ -133,10 +142,12 @@ class Gun(QGraphicsPixmapItem):
             if not isActive:
                 self.pToRemove.add(p)
 
-        print(self.fireTally)
         if self.fireTally > 0:
             self.fireTally -= 1
-            self.projectiles.add(Projectile(blobX, blobY, self.width, self.height, self.rotation(), self.boardWidth, self.boardHeight))
+            timeDifference = self.fireTime - time.clock()
+            if timeDifference < -1:
+                self.projectiles.add(Projectile(blobX, blobY, self.width, self.height, self.rotation(), self.boardWidth, self.boardHeight))
+                self.fireTime = time.clock()
 
     def onDraw(self, blobX, blobY):
         self.updateOrientation()
@@ -152,8 +163,8 @@ class Projectile(QGraphicsPixmapItem):
         self.boardWidth = boardWidth
         self.boardHeight = boardHeight
 
-        self.width = 50
-        self.height = 50
+        self.width = 30
+        self.height = 30
 
         # dX and dY use the current angle to the gun to know what direction to travel in
         self.dX = math.cos(math.radians(gunAngle))
@@ -165,13 +176,6 @@ class Projectile(QGraphicsPixmapItem):
 
         self.setPos(gunX + gunWidth/2 + (gunWidth/2 * self.dX), gunY + gunHeight/2 + (gunHeight/2 * self.dY))
         self.show()
-
-    def cosDeg(self, angle):
-        """ finds the cos(angle) in degrees  """
-        return
-
-    def sinDeg(self, angle):
-        pass
 
     def update(self):
         self.setPos(self.x() + self.dX, self.y() + self.dY)

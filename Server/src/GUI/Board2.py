@@ -4,9 +4,12 @@ from decimal import Decimal
 import math
 from socket import AddressFamily
 
-from PyQt5.QtWidgets import QWidget, QGraphicsView, QGraphicsScene, QScrollBar
+from PyQt5.QtGui import QPixmap, QBrush, QColor
+from PyQt5.QtWidgets import QWidget, QGraphicsView, QGraphicsScene, QScrollBar, QLabel
+from PyQt5.QtCore import Qt
 
 from src.GUI.Blob2 import Blob
+from src.Server.Items import Wall
 
 
 class Board(QGraphicsView):
@@ -26,6 +29,22 @@ class Board(QGraphicsView):
         self.scene = QGraphicsScene(self)
         self.scene.setSceneRect(0,0, self.BOARD_WIDTH, self.BOARD_HEIGHT)
 
+        bgPixMap = QPixmap('C:\\Users\\michaelh\\Desktop\\CSC Project\\Server\\src\\resources\\grey_tiles.png')
+        self.scene.setBackgroundBrush(QBrush(bgPixMap))
+
+        # Create the walls on the map
+        wallAngPixMap = QPixmap('C:\\Users\\michaelh\\Desktop\\CSC Project\\Server\\src\\resources\\angular_wall.png')
+        self.angWall = Wall(wallAngPixMap, 100, 100)
+        self.scene.addItem(self.angWall)
+
+
+        wallCirPixMap = QPixmap('C:\\Users\\michaelh\\Desktop\\CSC Project\\Server\\src\\resources\\circular_wall.png')
+        self.cirWall = Wall(wallCirPixMap, 595, 125)
+        self.scene.addItem(self.cirWall)
+
+        self.setScene(self.scene)
+        self.show()
+
     def start(self, adrs):
         self.setupUI(adrs)
 
@@ -42,13 +61,13 @@ class Board(QGraphicsView):
         i = 0
         # for all sockets add their key (player index) to a single list of keys and sort
         for s in adrs.keys():
-            pIndices.append(list(adrs[s].keys())[0])  # todo may not be thread safe http://blog.labix.org/2008/06/27/watch-out-for-listdictkeys-in-python-3
+            pIndices.append(list(adrs[s].keys())[0])
         pIndices = sorted(pIndices)  # sort the keys by numerical value (0,1,2,3)
         print("sorted KEYS = ", pIndices)
         # go through each index in order and then add the address of the socket that has that player index
         for index in pIndices:
             for s in adrs.keys():
-                if index in list(adrs[s].keys()):  # todo may not be thread safe http://blog.labix.org/2008/06/27/watch-out-for-listdictkeys-in-python-3
+                if index in list(adrs[s].keys()):
                     print("KEY: ", index)
                     print(adrs[s][index])
                     clients.append(adrs[s][index])  # since keys are sorted add in order to ads list
@@ -60,6 +79,13 @@ class Board(QGraphicsView):
             j += 2
         for blob in self.listBlobs:
             self.scene.addItem(blob)
+
+        self.timeTxt = self.scene.addSimpleText("Time: ")
+        self.timeTxt.setPos(self.BOARD_WIDTH/2-100, 50)
+        self.timeTxt.setScale(2)
+        # brush = QBrush()
+        # brush.setColor(QColor(200, 0, 0))
+        # self.timeTxt.setBrush(brush)
 
         self.setScene(self.scene)
 
@@ -151,6 +177,7 @@ class Board(QGraphicsView):
         search = re.search(pattern, strGun)
 
         if not search:
+            print("NOT VALID")
             return -1  # return -1, no valid angle so keep orientation the same
         else:
             angle = search.group(0)
@@ -169,26 +196,68 @@ class Board(QGraphicsView):
                 blob.gun.desiredAngle = self.getAngle(strGun)
 
     """ Update game graphics with respect to the current game state """
-    def updateGame(self, addressDict, input):
+    def updateGame(self, addressDict, input, currTime):
         try:
+            print(currTime)
+            diff = 120 - currTime
+            print("diff: ", diff)
+            timeString = "Time: {}".format(diff)
+            print(timeString)
+            self.timeTxt.setText(timeString)
             for key in addressDict.keys():
                 address = addressDict[key]
             isDriver = self.updatePos(address, input)
             if not isDriver:
                 isGunner = self.updateGun(address, input)
+            for blob in self.listBlobs:
+                self.manageProjectiles(blob)
 
             self.drawGame()
         except ValueError:
             print("address was not assigned a value before being used")
 
-    def manageProjectiles(self, blob):
-        """ Manage projectiles - send the call to update position on screen, remove from active projectiles if
-        necessary.
+    def manageBlob(self, blob):
+        """ Check if a blob has collided with an item, if a blob has collided with an item carry out the correct
+        response.
+            # Wall - Blob is not allowed to pass into a wall
+
+        :param blob:
         :return:
         """
+        isCollision = False
+        collidedItems = blob.collidingItems()
+
+        for item in collidedItems:
+            if item is self.angWall or item is self.cirWall:
+                isCollision = True
+        print(isCollision)
+        return isCollision
+
+    def manageProjectiles(self, blob):
+        """ Manage projectiles - send the call to update position on screen, remove from active projectiles if
+        necessary, check for collisions with other Blobs
+        :return:
+        """
+        # add particles to seen if they are not in the scene already
         for p in blob.gun.projectiles:
             if not p in self.scene.items():
                 self.scene.addItem(p)
+
+        # check for collision with other blobs
+        # for b in self.listBlobs:
+        #     if b != blob:
+        collidedItems = []
+        for p in blob.gun.projectiles:
+            # for each projectile check if p collides with blob b
+            collidedItems = p.collidingItems()
+            for item in collidedItems:
+                if item is self.angWall or item is self.cirWall:
+                    # item is a wall remove particle
+                    blob.gun.pToRemove.add(p)
+                elif item in self.listBlobs and item != blob:
+                    # item is a blob and is not the current blob the particles belong to
+                    blob.hits += 1
+                    blob.gun.pToRemove.add(p)
 
 
         tempList = []
@@ -199,14 +268,21 @@ class Board(QGraphicsView):
             if item in blob.gun.pToRemove:
                 tempList.append(item)  # items in tempList are Projectiles that are marked to be removed
 
-
         for p in tempList:
             blob.gun.projectiles.remove(p)  # remove from active projectile set
             self.scene.removeItem(p)  # Remove the item from the group
             blob.gun.pToRemove.remove(p)  # Remove the projectile from the set signifying it should be removed
 
+        print("SCORE: ", blob.hits)
+
     """ Draw all graphics in the game """
     def drawGame(self):
         for blob in self.listBlobs:
-            blob.onDraw([self.width(), self.height()])
-            self.manageProjectiles(blob)
+            blob.onDraw([self.width(), self.height()], self.angWall, self.cirWall)
+            # self.manageProjectiles(blob)
+
+    def gameLoop(self):
+        """
+
+        :return:
+        """

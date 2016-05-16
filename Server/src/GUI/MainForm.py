@@ -53,15 +53,14 @@ class MainForm(QWidget):
     def retranslateUi(self):
         _translate = QtCore.QCoreApplication.translate
         self.setWindowTitle(_translate("MainForm", "Blobageddon"))
-        self.connectedUsersLbl.setText(_translate("MainForm", "Connected Users"))
+        self.connectedUsersLbl.setText(_translate("MainForm", "Lastest Scores"))
         self.connectionHistoryLbl.setText(_translate("MainForm", "Connection History"))
-        self.gameInfoLbl.setText(_translate("MainForm", "Game Information"))
+        self.gameInfoLbl.setText(_translate("MainForm", "Connected Users"))
 
     def loadDefaultInformation(self):
         self.connectedUsersTxbrwsr.insertPlainText("")
         self.connectionHistoryTxbrwsr.insertPlainText("")
-        self.gameInfoTxbrwsr.insertPlainText("1.) Wait here until all members have connected.\n2.) Once all members have"
-                                             " connected continue to the team selection page.")
+        self.gameInfoTxbrwsr.insertPlainText("")
 
     def updateConnectedUsers(self, strUsers):
         # Method to update the text browser when a new user has connected or an old one disconnects
@@ -78,4 +77,8 @@ class MainForm(QWidget):
 
     def updateGameInfo(self, strGameInfo):
         # Method to update the text browser with information relevant tot he current state of the game
-        self.connectedUsersTxbrwsr.insertPlainText(strGameInfo)
+        if strGameInfo  != "":
+            self.gameInfoTxbrwsr.clear()
+            self.gameInfoTxbrwsr.insertPlainText(strGameInfo)
+        else:
+            self.gameInfoTxbrwsr.clear()

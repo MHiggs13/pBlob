@@ -1,6 +1,7 @@
 package com.mh.blobageddon;
 
 import android.content.Intent;
+import android.graphics.Canvas;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
 import android.view.Menu;
@@ -13,13 +14,8 @@ import android.widget.EditText;
 import java.net.Socket;
 
 public class MainActivity extends ActionBarActivity {
-
-    private Socket sock = new Socket();
-    private boolean connected = false;
     private Connection connection;
-    private StateUpdate receiveStateT;
-    private boolean isClicked = false;
-    //private Bitmap ball;
+    private MainUpdate mainUpdate = new MainUpdate();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,26 +24,23 @@ public class MainActivity extends ActionBarActivity {
 
         connection = Helper.conn;
 
+        /* todo may need moved to another place. Needs a place where halting thread can be stopped
+           when app closed and then restarted onStart()
+        */
+        mainUpdate.start();
+
         updateUi();
     }
 
     @Override
     protected void  onStart() {
         super.onStart();
-        // todo is this necessary
-        if (connection.isConnected == false) {
-            connection.setupSocket();
-        }
-
-        receiveStateT = new StateUpdate();
-        receiveStateT.start();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
     }
-
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -73,42 +66,34 @@ public class MainActivity extends ActionBarActivity {
 
 
     public void updateUi() {
-        CheckBox reconnectCkBx = (CheckBox)findViewById(R.id.connectedCkBx);
-        Button reconenctBtn = (Button) findViewById(R.id.reconnectBtn);
-        if (!connected) {
-            // If client is not connected, uncheck checkbox and make button viewable
-            reconnectCkBx.setChecked(false);
-            reconenctBtn.setVisibility(View.VISIBLE);
+        EditText connectionLbl = (EditText) findViewById(R.id.connectionLbl);
+        Button teamSelectBtn = (Button) findViewById(R.id.btnTeamSelection);
+        EditText ipLbl = (EditText) findViewById(R.id.ipLbl);
+        if (!connection.isConnected) {
+            // If client is not connected, updated the connection message and change the button text
+            connectionLbl.setText("You are NOT connected.");
+            teamSelectBtn.setText("Reconnect");
+            ipLbl.setText("IP: _._._._");
         }
         else {
-            // If client is conencted check checkbox and make button invisible
-            reconnectCkBx.setChecked(true);
-            reconenctBtn.setVisibility(View.INVISIBLE);
+            // If client is  connected, updated the connection message and change the button text
+            connectionLbl.setText("You are connected.");
+            teamSelectBtn.setText("Select Team");
+            String address = connection.getAddress();
+            if (!address.equals("")) {
+                ipLbl.setText("IP:" + connection.getAddress());
+            }
         }
     }
 
-    public void btnSendTextToServerClicked(View view) {
-        // send string entered into etxMsg to server, so it can display
-        EditText etxMsg = (EditText) findViewById(R.id.etxMsg);
-        String msg = etxMsg.getText().toString();
-
-//        // send message to Client object so it can be sent to server
-//        client.setMsg(msg);
-//
-//        // up the semaphore to allow client to send
-//        semSendMessage.release();
-        if (connected) {
-            connected = connection.sendMessage(msg);
+    public void btnTeamSelectionClicked(View view) {
+        Button teamSelectBtn = (Button) findViewById(R.id.btnTeamSelection);
+        if (teamSelectBtn.getText().equals("Select Team")) {
+            connection.sendStateChange(GState.TEAM_SCREEN);
         }
-        updateUi();
-    }
-
-    public void btnReconnectClicked(View view) {
-        // Method to allow the user to reconnect if they lose their connection to server
-        if (!connected) {
-            connection.setupSocket();
+        else {
+            connection.kickStartConnection();
         }
-        updateUi();
     }
 
     public void btnMoveControllerActivityClicked(View view) {
@@ -116,7 +101,6 @@ public class MainActivity extends ActionBarActivity {
     }
 
     public void changeMoveActivity() {
-        isClicked = true;
         Intent intent = new Intent(this, MoveControllerActivity.class);
 
         Bundle b = new Bundle();
@@ -128,10 +112,14 @@ public class MainActivity extends ActionBarActivity {
         startActivity(intent);
     }
 
+    public void changeTeamSelectionActivity() {
+        Intent intent = new Intent(this, TeamSelectionActivity.class);
+        startActivity(intent);
+    }
+
     public void changeGunnerActivity() {
 
         System.out.println("GUNNER STARTED");
-        isClicked = true;
         Intent intent = new Intent(this, GunnerActivity.class);
 
         startActivity(intent);
@@ -147,34 +135,28 @@ public class MainActivity extends ActionBarActivity {
         startActivity(intent);
     }
 
-    private class StateUpdate extends Thread {
-        /* Thread checks every 0.1s if a state change has occurred, if state change has occured. Move
+    private class MainUpdate extends Thread {
+        /* Thread checks every 0.1s if a state change has occurred, if state change has occurred. Move
        to the appropriate activity.
        */
         @Override
         public void run() {
-            while (connection.getState() == com.mh.blobageddon.State.MAIN_SCREEN && !isClicked) {
-                connection.receiveStateChange();
-
+            // busy wait loop that waits while the state says to stay on this screen
+            while (connection.getGState() == GState.MAIN_SCREEN) {
                 try {
                     this.sleep(100);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            updateUi();
+                        }
+                    });
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-
-                // if current state is not main screen, change activity to appropriate
-                if (connection.getState() != com.mh.blobageddon.State.MAIN_SCREEN && !isClicked) {
-                    if (connection.getState() == com.mh.blobageddon.State.GAME_SCREEN) {
-                        System.out.println("GAMESCREEN SHOULD APPEAR");
-                        changeGunnerActivity();
-                    }
-                }
             }
-            System.out.println("OUT OF LOOP, THREAD DEAD");
-            try {
-                this.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            if (connection.getGState() == GState.TEAM_SCREEN) {
+                changeTeamSelectionActivity();
             }
         }
     }

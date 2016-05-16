@@ -1,6 +1,7 @@
 package com.mh.blobageddon;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -14,7 +15,7 @@ import android.view.View;
  */
 public class GunnerView extends SurfaceView {
 
-    private Connection connection;
+    public Connection connection;
     private SurfaceHolder holder;
     private GunnerLoopThread gunnerLoopThread;
     private Thumbstick thumbstick;
@@ -166,6 +167,12 @@ public class GunnerView extends SurfaceView {
         return true;
     }
 
+    private void changeMainScreenActivity () {
+        final Context context = GunnerView.this.getContext();
+        Intent intent = new Intent(context , GunnerView.class);
+        context.startActivity(intent);
+    }
+
     @Override
     protected void onDraw(Canvas canvas) {
         thumbstick.onDraw(canvas);
@@ -180,15 +187,14 @@ public class GunnerView extends SurfaceView {
     protected void update() {
         if (connection.isConnected) {
             int fireTally = fireButton.getFireTally();
-            System.out.println("TALLY: " + fireTally);
-            connection.sendMessage(fireTally + ", " + thumbstick.getAngle() + ";");
+//            System.out.println("TALLY: " + fireTally);
+            connection.sendGun(fireTally + "," + thumbstick.getAngle() + ";");
         } else {      //attempt to reconnect
             connection.setupSocket();
         }
     }
-}
 
-class GunnerLoopThread extends Thread {
+private class GunnerLoopThread extends Thread {
     private GunnerView view;
     private boolean running = false;
 
@@ -215,6 +221,10 @@ class GunnerLoopThread extends Thread {
                     if (c != null) {
                         view.onDraw(c);
                     }
+                    if (connection.getGState() == GState.MAIN_SCREEN) {
+                        changeMainScreenActivity();
+                        running = false;
+                    }
                 }
             } finally {
                 if (c != null) {
@@ -223,6 +233,6 @@ class GunnerLoopThread extends Thread {
             }
         }
     }
-
+}
 }
 
